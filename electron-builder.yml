@@ -1,0 +1,35 @@
+appId: com.aico.app
+productName: aico
+directories:
+  buildResources: build
+files:
+  - '!**/.vscode/*'
+  - '!src/*'
+  - '!electron.vite.config.{js,ts,mjs,cjs}'
+  - '!{.eslintignore,.eslintrc.cjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
+  - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
+  - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
+extraFiles: #onnxやvrmモデルなど必要なリソースはここでコピーすること。インストール時にresourceパス(process.resourcesPath;)にコピーされます。
+  - from: src/renderer/assets/
+    to: resources/
+  - from: ./config.ini
+    to: ./config.ini
+asarUnpack:
+  - resources/**
+win:
+  executableName: aico
+  icon: ./resources/icon.png
+  target:
+    - target: nsis
+nsis:
+  artifactName: ${name}-${version}-setup.${ext}
+  shortcutName: ${productName}
+  uninstallDisplayName: ${productName}
+  deleteAppDataOnUninstall: true
+  oneClick: true
+npmRebuild: false
+publish:
+  provider: generic
+  url: https://example.com/auto-updates
+electronDownload:
+  mirror: https://npmmirror.com/mirrors/electron/

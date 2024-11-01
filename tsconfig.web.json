@@ -1,0 +1,25 @@
+{
+  "extends": "@electron-toolkit/tsconfig/tsconfig.web.json",
+  "include": [
+    "src/renderer/src/env.d.ts",
+    "src/renderer/src/**/*",
+    "src/renderer/src/**/*.tsx",
+    "src/renderer/src/assets/*.onnx",
+    "src/preload/*.d.ts"
+, "postcss.config.js", "tailwind.config.js"  ],
+  "compilerOptions": {
+    "composite": true,
+    "noUnusedParameters": false,
+    "noUnusedLocals": false,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "noImplicitReturns": false,
+    "jsx": "react-jsx",
+    "baseUrl": ".",
+    "paths": {
+      "@renderer/*": [
+        "src/renderer/src/*"
+      ]
+    }
+  }
+}
