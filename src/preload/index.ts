@@ -35,11 +35,11 @@ const yoloModelPath = join(
   'models/yolov9/yolov9_s_wholebody25_post_0100_1x3x480x640.onnx'
 )
 const wasmPath = join(resourcePath, 'onnxruntime-web/ort-wasm-simd-threaded.jsep.wasm')
-const vrmPath = join(resourcePath, 'vrms/models/stuff/akiuv2.vrm')
+const vrmPath = join(resourcePath, 'vrms/models/hikari/miyagi3.3.vrm')
 const vrmAnimationPath = join(resourcePath, 'vrms/animations/idle_loop.vrma')
 const silerovadOnnxPath = join(resourcePath, 'models/silero_onnx/silero_vad.onnx')
 
-const backgroundImagePath = join(resourcePath, 'media/images/wallpaper/akiu_background.jpg')
+const backgroundImagePath = join(resourcePath, 'media/images/wallpaper/AICOblueback.jpg')
 
 // Custom APIs for renderer
 const api = {

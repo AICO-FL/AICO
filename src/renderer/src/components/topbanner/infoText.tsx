@@ -6,7 +6,7 @@ const SampleText: React.FC<{ className?: string }> = ({ className = '' }) => {
   const [stage, setStage] = useState<'entering' | 'paused' | 'exiting' | 'waiting'>('waiting')
   const containerRef = useRef<HTMLDivElement>(null)
   const textRef = useRef<HTMLDivElement>(null)
-  const sampleTexts = ['いらっしゃいませ、秋保グランドホテルへようこそ。']
+  const sampleTexts = ['いらっしゃいませ、ファーストゲーミングへようこそ。']
 
   useEffect(() => {
     const container = containerRef.current

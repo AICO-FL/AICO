@@ -149,7 +149,7 @@ export class Viewer {
     if (headNode) {
       const headWPos = headNode.getWorldPosition(new THREE.Vector3())
       this._camera?.position.set(this._camera.position.x, headWPos.y, this._camera.position.z)
-      this._cameraControls?.target.set(headWPos.x, headWPos.y - 0.1, headWPos.z)
+      this._cameraControls?.target.set(headWPos.x, headWPos.y - 0.0, headWPos.z) //位置の上げ下げはここ
       this._cameraControls?.update()
     }
   }

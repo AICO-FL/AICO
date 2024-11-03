@@ -7,87 +7,55 @@ import settingsStore from '../stores/settings'
 
 export function useDetectionEffect() {
   const isHeadDetected = useSelector((state: RootState) => state.detection.isHeadDetected)
-  const hasGreeted = useRef(true) // 挨拶済みフラグ (true = 挨拶可能)
-  const detectionTimerRef = useRef<NodeJS.Timeout | null>(null) // 顔検出継続時間計測用タイマー
-  const noDetectionTimerRef = useRef<NodeJS.Timeout | null>(null) // 非検出時のクールダウンタイマー
-  const startTimeRef = useRef<number | null>(null) // 検出開始時刻
-  const resetTimerRef = useRef<NodeJS.Timeout | null>(null) // 長時間非検出時のリセットタイマー
-
+  const isFirstGreeting = useRef(true) // 初回挨拶フラグ
+  const detectionStartTime = useRef<number | null>(null) // 検出開始時刻
+  const lastGreetingTime = useRef<number>(0) // 最後の挨拶時刻
+  const resetTimerRef = useRef<NodeJS.Timeout | null>(null) // リセットタイマー
 
   useEffect(() => {
     if (isHeadDetected) {
-      // 顔検出中の処理
+      // 顔検出開始時の処理
+      if (detectionStartTime.current === null) {
+        detectionStartTime.current = Date.now()
 
-      console.log('検出状態:', {
-        isHeadDetected,
-        hasGreeted: hasGreeted.current,
-        startTime: startTimeRef.current,
-        detectionTimer: !!detectionTimerRef.current
-      })
+        // 初回挨拶の場合はすぐに挨拶
+        if (isFirstGreeting.current) {
+          handleWelcomeMessage()
+          isFirstGreeting.current = false
+          lastGreetingTime.current = Date.now()
+        }
+      } else {
+        // 検出継続時間が2秒を超え、かつ最後の挨拶から30秒以上経過している場合
+        const currentTime = Date.now()
+        const detectionDuration = currentTime - detectionStartTime.current
+        const timeSinceLastGreeting = currentTime - lastGreetingTime.current
+
+        if (detectionDuration >= 2000 && timeSinceLastGreeting >= 30000 && !isFirstGreeting.current) {
+          handleWelcomeMessage()
+          lastGreetingTime.current = currentTime
+          detectionStartTime.current = null // 検出時間をリセット
+        }
+      }
 
       // リセットタイマーがある場合はクリア
       if (resetTimerRef.current) {
         clearTimeout(resetTimerRef.current)
         resetTimerRef.current = null
       }
-
-      // 非検出タイマーが動いている場合はクリア
-      if (noDetectionTimerRef.current) {
-        console.log('非検出タイマーをクリア')
-        clearTimeout(noDetectionTimerRef.current)
-        noDetectionTimerRef.current = null
-      }
-
-      // 検出継続時間計測用タイマーの開始（重複防止）
-      if (!detectionTimerRef.current) {
-        startTimeRef.current = Date.now() // 検出開始時刻を記録
-        detectionTimerRef.current = setInterval(() => {
-          const detectionDuration = Date.now() - startTimeRef.current!
-
-          // 800ms以上検出かつ挨拶可能な場合
-          if (detectionDuration >= 800 && hasGreeted.current) {
-            handleWelcomeMessage()
-            hasGreeted.current = false // 挨拶済みフラグを設定
-
-            // 挨拶完了後タイマーをクリア
-            if (detectionTimerRef.current) {
-              clearInterval(detectionTimerRef.current)
-              detectionTimerRef.current = null
-            }
-            startTimeRef.current = null
-          }
-        }, 100)
-      }
     } else {
-      // 顔非検出中の処理
+      // 顔非検出時の処理
+      detectionStartTime.current = null
 
-      console.log('非検出状態:', {
-        isHeadDetected,
-        hasGreeted: hasGreeted.current,
-        noDetectionTimer: !!noDetectionTimerRef.current
-      })
-
-      // 検出タイマーのクリア（顔を見失ったため）
-      if (detectionTimerRef.current) {
-        clearInterval(detectionTimerRef.current)
-        detectionTimerRef.current = null
-        startTimeRef.current = null
-      }
-
-      // 非検出クールダウンタイマーの開始（10秒後に再挨拶可能に）
-      if (!noDetectionTimerRef.current) {
-        noDetectionTimerRef.current = setTimeout(() => {
-          hasGreeted.current = true // 挨拶可能フラグを設定
-          noDetectionTimerRef.current = null
-        }, 10000)
-      }
-
-      // 非検出開始時にリセットタイマーを開始
+      // 非検出開始時にリセットタイマーを開始（既存のタイマーがない場合のみ）
       if (!resetTimerRef.current) {
-        console.log('リセットタイマー開始')
-        resetTimerRef.current = setTimeout(() => {
-          console.log('1分経過 - ストアをリセット')
+        resetTimerRef.current = setTimeout(async () => {
+          console.log('30秒経過 - システムをリセット')
+          // 先にチャットログをクリアする
           homeStore.setState({ chatLog: [] })
+          
+          // 少し待ってから他の状態をリセット
+          await new Promise(resolve => setTimeout(resolve, 100))
+          
           settingsStore.setState({
             selectLanguage: 'ja',
             selectVoice: 'stylebertvits2',
@@ -95,6 +63,8 @@ export function useDetectionEffect() {
             isAutoLanguageDetection: false,
             difyConversationId: ''
           })
+          isFirstGreeting.current = true
+          lastGreetingTime.current = 0
           resetTimerRef.current = null
         }, 30000)
       }
@@ -102,21 +72,19 @@ export function useDetectionEffect() {
 
     // クリーンアップ関数
     return () => {
-      // コンポーネントのアンマウント時にすべてのタイマーをクリア
-      if (detectionTimerRef.current) clearInterval(detectionTimerRef.current)
-      if (noDetectionTimerRef.current) clearTimeout(noDetectionTimerRef.current)
-      if (resetTimerRef.current) clearTimeout(resetTimerRef.current)
+      if (resetTimerRef.current) {
+        clearTimeout(resetTimerRef.current)
+      }
     }
   }, [isHeadDetected])
 
   const handleWelcomeMessage = async () => {
     try {
-      const welcomeMessage = 'こんにちは'
+      const welcomeMessage = 'いらっしゃいませ'
 
-      // 状態の更新を1回にまとめる
+      // 前の状態を展開せず、新しいメッセージだけをセット
       homeStore.setState({
         chatLog: [
-          ...homeStore.getState().chatLog,
           {
             role: 'assistant',
             content: welcomeMessage
@@ -124,7 +92,6 @@ export function useDetectionEffect() {
         ]
       })
 
-      // 音声再生は変更なし
       speakCharacter(
         {
           expression: 'neutral',

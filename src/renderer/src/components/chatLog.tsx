@@ -32,7 +32,7 @@ export const ChatLog = () => {
   }, [streamedMessages])
 
   return (
-    <div className="fixed inset-x-0 top-[45%] mx-auto w-col-span-7 max-w-full h-[55vh] pt-64 z-20">
+    <div className="fixed inset-x-0 top-[50%] mx-auto w-col-span-7 max-w-full h-[55vh] pt-64 z-20">
       <div className="max-h-full px-16 pb-104 pt-64 overflow-y-auto scroll-hidden">
         {[...streamedMessages].reverse().map((msg, i) => {
           return (

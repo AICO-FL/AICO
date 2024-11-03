@@ -12,10 +12,51 @@ export function extractAudioDataFromWAV(arrayBuffer: ArrayBuffer): Float32Array 
   return floatAudioData
 }
 
+// 音量レベルをチェックする関数
+function checkVolumeLevel(audioData: Float32Array): { 
+  isValid: boolean; 
+  maxVolume: number;
+  reason?: string;
+} {
+  let maxVolume = 0
+  for (let i = 0; i < audioData.length; i++) {
+    maxVolume = Math.max(maxVolume, Math.abs(audioData[i]))
+  }
+
+  // 音量が小さすぎる場合
+  if (maxVolume < 0.01) {
+    return { isValid: false, maxVolume, reason: 'too_quiet' }
+  }
+  // 音量が大きすぎる場合
+  if (maxVolume > 0.8) {
+    return { isValid: false, maxVolume, reason: 'too_loud' }
+  }
+
+  return { isValid: true, maxVolume }
+}
+
+// 音量を正規化する関数
+function normalizeVolume(audioData: Float32Array, targetPeak: number = 0.5): Float32Array {
+  const maxVolume = Math.max(...audioData.map(Math.abs))
+  if (maxVolume === 0) return audioData
+
+  const normalizedData = new Float32Array(audioData.length)
+  const scaleFactor = targetPeak / maxVolume
+
+  for (let i = 0; i < audioData.length; i++) {
+    normalizedData[i] = audioData[i] * scaleFactor
+  }
+
+  return normalizedData
+}
+
 // ゲイン調整を適用する関数
 export function adjustGain(audioData: Float32Array, gain: number = 1.0): Float32Array {
   try {
-    const adjustedData = audioData.map((sample) => sample * gain)
+    const adjustedData = audioData.map((sample) => {
+      // クリッピングを防ぐため、-1.0から1.0の範囲に収める
+      return Math.max(-1.0, Math.min(1.0, sample * gain))
+    })
     return adjustedData
   } catch (error) {
     console.error('ゲイン調整中にエラーが発生しました:', error)
@@ -56,7 +97,7 @@ export function applyCompressor(
   releaseTime: number = 0.25
 ): Float32Array {
   try {
-    const sampleRate = 44100 // サンプルレートを適切に設定してください
+    const sampleRate = 44100
     const attackSamples = Math.floor(attackTime * sampleRate)
     const releaseSamples = Math.floor(releaseTime * sampleRate)
 
@@ -131,32 +172,49 @@ function floatTo16BitPCM(output: DataView, offset: number, input: Float32Array) 
 export async function processAndEncodeAudio(
   audioData: ArrayBuffer,
   sampleRate: number = 16000
-): Promise<ArrayBuffer> {
+): Promise<{ buffer: ArrayBuffer | null; error?: string }> {
   try {
     const floatAudioData = extractAudioDataFromWAV(audioData)
 
+    // 音量チェック
+    const volumeCheck = checkVolumeLevel(floatAudioData)
+    if (!volumeCheck.isValid) {
+      return {
+        buffer: null,
+        error: volumeCheck.reason === 'too_quiet' 
+          ? 'quiet'
+          : 'loud'
+      }
+    }
+
+    // 音声処理のパイプライン
     let processedData = floatAudioData
 
-    processedData = adjustGain(processedData, 4.0)
+    // 音量の正規化（目標ピークレベル: 0.5）
+    processedData = normalizeVolume(processedData, 0.5)
 
+    // ノイズゲートとコンプレッサーの適用
     processedData = applyNoiseGate(processedData, 0.005, 0.002)
-
     processedData = applyCompressor(processedData, 0.1, 2, 0.003, 0.25)
 
-    // 無音チェック
-    const isAllSilence = processedData.every((sample) => Math.abs(sample) < 0.001)
-    if (isAllSilence) {
-      console.warn('処理後の音声データが全て無音です。元のデータを使用します。')
-      processedData = floatAudioData
+    // 最終的な音量チェック
+    const finalVolumeCheck = checkVolumeLevel(processedData)
+    if (!finalVolumeCheck.isValid) {
+      return {
+        buffer: null,
+        error: finalVolumeCheck.reason === 'too_quiet' 
+          ? 'quiet'
+          : 'loud'
+      }
     }
 
     // WAVエンコード
     const encodedData = encodeWAV(processedData, sampleRate)
     console.log('エンコード後のデータサイズ:', encodedData.byteLength)
 
-    return encodedData
+    return { buffer: encodedData }
   } catch (error) {
     console.error('音声処理中にエラーが発生しました:', error)
-    return encodeWAV(extractAudioDataFromWAV(audioData), sampleRate) // エラー時は元のデータをエンコード
+    return { buffer: null, error: 'processing_error' }
   }
 }
