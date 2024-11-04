@@ -34,14 +34,12 @@ class MicrophoneAudio {
 
   async start(): Promise<void> {
     try {
-      console.log('MicrophoneAudio: start() called')
       this.stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           sampleRate: this.options.sampleRate,
           channelCount: this.options.channels
         }
       })
-      console.log('MicrophoneAudio: getUserMedia successful')
 
       this.getDeviceId().then((deviceId) => {
         console.log('MicrophoneAudio: The device Id is', deviceId)
@@ -50,7 +48,6 @@ class MicrophoneAudio {
       this.audioContext = new AudioContext({
         sampleRate: this.options.sampleRate
       })
-      console.log('MicrophoneAudio: AudioContext created')
 
       await this.audioContext.audioWorklet.addModule(
         URL.createObjectURL(
@@ -86,7 +83,6 @@ class MicrophoneAudio {
           )
         )
       )
-      console.log('MicrophoneAudio: AudioWorklet added')
 
       this.sourceNode = this.audioContext.createMediaStreamSource(this.stream)
       this.workletNode = new AudioWorkletNode(this.audioContext, 'audio-processor')
@@ -97,7 +93,6 @@ class MicrophoneAudio {
 
       this.sourceNode.connect(this.workletNode)
       this.workletNode.connect(this.audioContext.destination)
-      console.log('MicrophoneAudio: start() completed')
     } catch (error) {
       console.error('Error starting microphone:', error)
       throw error

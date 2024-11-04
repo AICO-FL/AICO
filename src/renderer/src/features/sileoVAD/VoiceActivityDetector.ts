@@ -25,7 +25,6 @@ export class VadDetector {
     minSilenceDurationMs: number,
     speechPadMs: number
   ) {
-    console.log('VadDetector: Constructor called')
     if (samplingRate !== 8000 && samplingRate !== 16000) {
       throw new Error('Does not support sampling rates other than [8000, 16000]')
     }
@@ -42,7 +41,6 @@ export class VadDetector {
     this.currentSample = 0
     this.isSessionValid = true
     this.reset()
-    console.log('VadDetector: Constructor completed')
   }
 
   reset(): void {
@@ -62,7 +60,6 @@ export class VadDetector {
     data: Float32Array,
     returnSeconds: boolean
   ): Promise<{ start?: number; end?: number }> {
-    console.log('VadDetector: apply() called')
     await this.modelReady
     // セッションが無効な場合、新しいセッションを作成
     if (!this.isSessionValid) {
@@ -96,7 +93,6 @@ export class VadDetector {
     try {
       const speechProbPromise = await this.model.call(x, this.samplingRate)
       speechProb = speechProbPromise[0][0]
-      console.log('VadDetector: The speechProb', speechProb)
     } catch (e) {
       console.error('VadDetector: Error calling the model:', e)
       this.isSessionValid = false // エラー発生時にセッションを無効とマーク
@@ -110,7 +106,6 @@ export class VadDetector {
     if (speechProb >= this.startThreshold && !this.triggered) {
       this.triggered = true
       const speechStart = Math.max(this.currentSample - this.speechPadSamples, 0)
-      console.log('The speechStart', speechStart)
       if (returnSeconds) {
         const speechStartSeconds = speechStart / this.samplingRate
         return { start: Number(speechStartSeconds.toFixed(1)) }
@@ -120,7 +115,6 @@ export class VadDetector {
     }
 
     if (speechProb < this.endThreshold && this.triggered) {
-      console.log('The speech end', this.tempEnd)
       if (this.tempEnd === 0) {
         this.tempEnd = this.currentSample
       }
@@ -141,7 +135,6 @@ export class VadDetector {
       }
     }
 
-    console.log('VadDetector: apply() completed')
     return {}
   }
 

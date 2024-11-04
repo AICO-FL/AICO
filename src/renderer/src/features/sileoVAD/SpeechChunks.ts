@@ -18,7 +18,6 @@ export class SpeechChunks {
   private isStarted: boolean = false
 
   constructor(onSpeechStart: () => void, onSpeechEnd: (blob: Blob) => void) {
-    console.log('SpeechChunks: Constructor called')
     this.chunks = []
     this.isSpeechActive = false
 
@@ -40,13 +39,11 @@ export class SpeechChunks {
     )
 
     this.isStarted = false
-    console.log('SpeechChunks: Constructor completed')
   }
 
   private async processAudioData(audioData: Float32Array): Promise<void> {
     if (!this.isStarted) return
 
-    console.log('SpeechChunks: Processing audio data', audioData.length)
     try {
       const result = await this.vadDetector.apply(audioData, false)
       if (result.start !== undefined) {
@@ -65,11 +62,9 @@ export class SpeechChunks {
   }
 
   async start(): Promise<void> {
-    console.log('SpeechChunks: start() called')
-    await this.vadDetector.waitForModel() // VADモデルの準備を待つ
+    await this.vadDetector.waitForModel()
     await this.microphoneAudio.start()
     this.isStarted = true
-    console.log('SpeechChunks: start() completed')
   }
 
   stop(): void {

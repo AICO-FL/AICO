@@ -20,6 +20,13 @@ if (is.dev) {
   log.transports.console.format = '[{level}] {text}'
 }
 
+// アプリケーションの再起動関数をファイルのトップレベルに配置
+function relaunchApp(): void {
+  log.info('アプリケーションを再起動します')
+  app.relaunch()
+  app.exit(0)
+}
+
 // INIファイルを読み込む処理をasync関数として分離
 async function loadConfig() {
   try {
@@ -62,6 +69,8 @@ async function createWindow(): Promise<void> {
         autoHideMenuBar: false, // 開発時はメニューバーを表示
         resizable: true,
         maximizable: true,
+        minimizable: true,
+        closable: true,
         kiosk: false
       }
     : {
@@ -73,6 +82,10 @@ async function createWindow(): Promise<void> {
         autoHideMenuBar: true,
         resizable: false,
         maximizable: false,
+        minimizable: false,
+        closable: false,
+        alwaysOnTop: true,
+        disableAutoHideCursor: true,
         kiosk: true
       }
 
@@ -83,6 +96,7 @@ async function createWindow(): Promise<void> {
   })
 
   // 開発者ツールを開発時のみ自動的に開く
+  mainWindow.webContents.openDevTools()
   if (is.dev) {
     mainWindow.webContents.openDevTools()
     log.info('開発者ツールを開きました')
@@ -122,9 +136,32 @@ async function createWindow(): Promise<void> {
   // メディアの自動許可
   session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
     if (permission === 'media') {
-      // カメラやマイクの許可を自動的に与える
       callback(true)
       log.info('メディアアクセスを許可しました')
+      
+      // メディア開始時のイベント
+      webContents.on('media-started-playing', () => {
+        log.info('メディアストリームが開始されました')
+      })
+      
+      // ページ読み込み失敗時のイベント
+      webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+        log.error('ページ読み込みエラー:', {
+          code: errorCode,
+          description: errorDescription
+        })
+        
+        // エラーから回復を試みる
+        setTimeout(() => {
+          webContents.reload()
+        }, 1000) // 1秒後に再読み込み
+      })
+  
+      // クラッシュ検知
+      webContents.on('render-process-gone', (event, details) => {
+        log.error('レンダラープロセスがクラッシュ:', details)
+        webContents.reload()
+      })
     } else {
       callback(false)
       log.info(`メディアアクセスを拒否しました: ${permission}`)
@@ -147,6 +184,15 @@ async function createWindow(): Promise<void> {
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()
   })
+
+  // レンダラープロセスのクラッシュ検知を mainWindow.webContents に対して設定
+  mainWindow.webContents.on('render-process-gone', (event, details) => {
+    log.error('レンダラープロセスがクラッシュ:', details)
+    if (details.reason === 'crashed' || details.reason === 'killed') {
+      log.error(`レンダラープロセスが${details.reason}により終了`)
+      relaunchApp()
+    }
+  })
 }
 
 // This method will be called when Electron has finished
@@ -164,6 +210,25 @@ app.whenReady().then(() => {
   // see https://github.com/alex8088/electron-toolkit/tree/master/packages/utils
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
+  })
+
+  // 子プロセスのクラッシュ検知
+  app.on('child-process-gone', (event, details) => {
+    log.error('子プロセスが予期せず終了:', {
+      type: details.type,
+      reason: details.reason,
+      exitCode: details.exitCode
+    })
+
+    // プラグインやGPUプロセスなど、重要な子プロセスがクラッシュした場合はアプリを再起動
+    if (details.type === 'GPU' || details.type === 'Pepper Plugin') {
+      log.info('重要な子プロセスがクラッシュしたため、アプリケーションを再起動します')
+      relaunchApp()
+    } else {
+      // その他の子プロセスの場合は、必要に応じてメインウィンドウをリロード
+      const windows = BrowserWindow.getAllWindows()
+      windows.forEach(window => window.webContents.reload())
+    }
   })
 
   createWindow()
@@ -191,12 +256,12 @@ app.on('window-all-closed', () => {
 
 // エラーハンドリング
 process.on('uncaughtException', (error) => {
-  log.error('未捕捉のエラーが発生しました:', error)
+  log.error('electron:event:uncaughtException');
+  log.error(error);
+  log.error(error.stack);
 })
 
 process.on('unhandledRejection', (reason) => {
-  log.error('未処理のPromise rejectionが発生しました:', reason)
+  log.error('未処理のPromise rejectionが発生しました:')
+  log.error(reason);
 })
-
-// In this file you can include the rest of your app"s specific main process
-// code. You can also put them in separate files and require them here.

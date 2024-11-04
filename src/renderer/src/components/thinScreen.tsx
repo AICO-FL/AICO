@@ -6,6 +6,7 @@ type Props = {
   isVadActive: boolean
   isRecording: boolean
   chatProcessing: boolean
+  chatProcessingCount: number
   isWaitingForResponse: boolean
   error: string | null
 }
@@ -16,6 +17,7 @@ export const ThinScreen: React.FC<Props> = ({
   isVadActive,
   isRecording, 
   chatProcessing,
+  chatProcessingCount,
   isWaitingForResponse,
   error 
 }) => {
@@ -26,22 +28,30 @@ export const ThinScreen: React.FC<Props> = ({
 
   const getStatusMessage = () => {
     if (error) return error
-    if (chatProcessing) return "AI回答中"
+    // chatProcessingCount が 0 より大きい場合は処理中
+    if (chatProcessingCount > 0) return "AI回答中"
+    // 音声認識中の状態
+    if (isRecording && isVadActive) return "聞き取っています..."
+    // VAD有効で録音待機中
+    if (isVadActive && !isRecording) return "話してください..."
     if (isWaitingForResponse) return "音声を処理しています"
-    if (isRecording) return "聞き取っています..."
-    if (isVadActive) return "話してください..."
+    if (isLoopMode && !isVadActive) return "音声認識を開始しています..."
     if (isLoopMode) return "続けて会話してください。終了するにはSボタンを押してください。"
     return "ボタンを押して会話を開始します"
   }
   
   const getStatusMessageEn = () => {
-    if (error) return "Error occurred"
-    if (chatProcessing) return "AI answering"
+    if (error) return error
+    // chatProcessingCount が 0 より大きい場合は処理中
+    if (chatProcessingCount > 0) return "AI answering"
+    // 音声認識中の状態
+    if (isRecording && isVadActive) return "Listening..."
+    // VAD有効で録音待機中
+    if (isVadActive && !isRecording) return "Talk to me..."
     if (isWaitingForResponse) return "Processing audio"
-    if (isRecording) return "Listening..."
-    if (isVadActive) return "Listening..."
+    if (isLoopMode && !isVadActive) return "Starting voice recognition..."
     if (isLoopMode) return "Continue the conversation. Press the S button to end."
-    return "Standby"
+    return "Press the button to start the conversation"
   }
 
   const getStatusIcon = () => {

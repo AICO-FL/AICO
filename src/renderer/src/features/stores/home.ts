@@ -14,6 +14,7 @@ export interface PersistedState {
 export interface TransientState {
   viewer: Viewer
   assistantMessage: string
+  isProcessing: boolean; 
   chatProcessing: boolean
   chatProcessingCount: number
   incrementChatProcessingCount: () => void
@@ -40,6 +41,7 @@ const homeStore = create<HomeState>()(
       codeLog: [],
       viewer: new Viewer(),
       assistantMessage: '',
+      isProcessing: false,
       chatProcessing: false,
       chatProcessingCount: 0,
       incrementChatProcessingCount: () => {

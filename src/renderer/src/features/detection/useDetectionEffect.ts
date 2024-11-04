@@ -81,8 +81,11 @@ export function useDetectionEffect() {
   const handleWelcomeMessage = async () => {
     try {
       const welcomeMessage = 'いらっしゃいませ'
-
-      // 前の状態を展開せず、新しいメッセージだけをセット
+  
+      // まず処理中フラグを立てる
+      homeStore.setState({ chatProcessing: true })
+  
+      // チャットログをクリアしてから新しいメッセージを追加
       homeStore.setState({
         chatLog: [
           {
@@ -91,8 +94,8 @@ export function useDetectionEffect() {
           }
         ]
       })
-
-      speakCharacter(
+  
+      await speakCharacter(
         {
           expression: 'neutral',
           talk: {
@@ -100,15 +103,15 @@ export function useDetectionEffect() {
             message: welcomeMessage
           }
         },
-        () => {
-          homeStore.setState({ chatProcessing: true })
-        },
+        () => {}, // 既にchatProcessingをtrueにしているので空関数
         () => {
           homeStore.setState({ chatProcessing: false })
         }
       )
     } catch (error) {
       console.error('挨拶ができませんでした:', error)
+      // エラー時もフラグを戻す
+      homeStore.setState({ chatProcessing: false })
     }
   }
 }

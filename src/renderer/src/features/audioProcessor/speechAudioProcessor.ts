@@ -28,7 +28,7 @@ function checkVolumeLevel(audioData: Float32Array): {
     return { isValid: false, maxVolume, reason: 'too_quiet' }
   }
   // 音量が大きすぎる場合
-  if (maxVolume > 0.8) {
+  if (maxVolume > 1.0) {
     return { isValid: false, maxVolume, reason: 'too_loud' }
   }
 

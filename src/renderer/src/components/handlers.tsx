@@ -15,6 +15,7 @@ const difyUrl = config.General.Dify_API_URL
  * @param messages 解答生成に使用するメッセージの配列
  */
 export const processAIResponse = async (currentChatLog: Message[], messages: Message[]) => {
+  homeStore.setState({ isProcessing: true })
   homeStore.setState({ chatProcessing: true })
   let stream
 
@@ -49,6 +50,7 @@ export const processAIResponse = async (currentChatLog: Message[], messages: Mes
   }
 
   if (stream == null) {
+    homeStore.setState({ isProcessing: false })
     homeStore.setState({ chatProcessing: false })
     return
   }
@@ -169,6 +171,7 @@ export const processAIResponse = async (currentChatLog: Message[], messages: Mes
             },
             () => {
               hs.decrementChatProcessingCount()
+              homeStore.setState({ isProcessing: false })
             }
           )
         } else {
@@ -197,6 +200,7 @@ export const processAIResponse = async (currentChatLog: Message[], messages: Mes
           },
           () => {
             hs.decrementChatProcessingCount()
+            homeStore.setState({ isProcessing: false })
           }
         )
         receivedMessage = ''
@@ -329,5 +333,6 @@ export const handleSendChatFn =
       console.error(e)
     }
 
+    homeStore.setState({ isProcessing: false })
     homeStore.setState({ chatProcessing: false })
   }

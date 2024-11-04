@@ -10,14 +10,11 @@ class OnnxWrapper {
   private sessionReady: Promise<void>
 
   constructor(path: string, force_onnx_cpu: boolean = true) {
-    console.log('OnnxWrapper: Constructor called')
     this.sessionReady = this.initSession(path, force_onnx_cpu)
     this.resetStates()
-    console.log('OnnxWrapper: Constructor completed')
   }
 
   private async initSession(path: string, force_onnx_cpu: boolean) {
-    console.log('OnnxWrapper: Initializing session')
     const options: ort.InferenceSession.SessionOptions = {
       executionProviders: force_onnx_cpu ? ['wasm'] : ['webgl', 'wasm'],
       graphOptimizationLevel: 'all',
@@ -33,7 +30,6 @@ class OnnxWrapper {
     }
 
     this.session = await ort.InferenceSession.create(path, options)
-    console.log('OnnxWrapper: Session initialized')
   }
 
   private _validate_input(x: number[][], sr: number): [number[][], number] {
@@ -74,7 +70,6 @@ class OnnxWrapper {
   }
 
   async call(x: number[][], sr: number): Promise<number[][]> {
-    console.log('OnnxWrapper: call() called')
     await this.ready()
     ;[x, sr] = this._validate_input(x, sr)
     const num_samples = sr === 16000 ? 512 : 256
@@ -138,7 +133,6 @@ class OnnxWrapper {
       this._last_sr = sr
       this._last_batch_size = batch_size
 
-      console.log('OnnxWrapper: call() completed')
       return out
     } else {
       throw new Error(`Unsupported sample rate: ${sr}. Supported rates are 8000 and 16000.`)
